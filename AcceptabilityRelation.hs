@@ -1,4 +1,4 @@
-module AcceptibilityClause where
+module AcceptabilityRelation where
 
 import Fun
 
