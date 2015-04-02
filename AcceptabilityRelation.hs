@@ -44,6 +44,6 @@ type AbsCache = M.Map Lab AbsVal
 lookupSet :: (Ord k) => M.Map k (S.HashSet v) -> k -> S.HashSet v
 lookupSet m k = M.findWithDefault S.empty k m
 
-isSubsetOf :: (Eq a, Hashable a) => S.HashSet a -> S.HashSet a -> Bool -- TODO: test
+isSubsetOf :: (Eq a, Hashable a) => S.HashSet a -> S.HashSet a -> Bool
 isSubsetOf a b = S.size a == S.size elems
   where elems = S.filter (\x -> S.member x b) a

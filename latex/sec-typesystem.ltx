@@ -1,0 +1,25 @@
+\section{Type system}
+\label{sec:typesystem}
+
+\begin{figure}
+  \prototype{Typing}{|Gamma +- e : tau|}
+
+  \axiom[con]{|Gamma +- c : tau|_c}\\ \vspace{0.5\baselineskip}
+
+  \infrule[var]%
+    {|Gamma(x) = tau|}%
+    {|Gamma +- x : tau|}\\ \vspace{0.5\baselineskip}
+
+  \infrule[fn]%
+    {|Gamma[x +-> tau|_x|] +- e|_0| : tau|_0}%
+    {|Gamma +- fn|_{\pi}| x => e|_0| : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
+
+  \infrule[fun]%
+    {|Gamma[f +-> tau|_x| -> tau|_0|][x +-> tau|_x|] +- e|_0| : tau|_0}%
+    {|Gamma +- fun|_{\pi}| f x => e|_0| : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
+
+  \caption{Typing}
+  \label{fig:rf-typing}
+\end{figure}
+
+
