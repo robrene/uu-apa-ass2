@@ -1,6 +1,8 @@
 \section{Type system}
 \label{sec:typesystem}
 
+Below you will find Figure 1, which describes the annotated type rules for our extended lambda calculus language for the second assignment of Automatic Program Analysis at Utrecht University.
+
 \begin{figure}
   \prototype{Typing}{|Gamma +- e : tau|}
 
@@ -48,7 +50,7 @@
   \infrule[list-cons]%
     {|Gamma +- x : tau|_0 \qquad%
      |Gamma +- xs : tau|_{list(|tau|_0)}}%
-    {|Gamma +- (x:xs) : tau|_{list(|tau|_0)}}\\ \vspace{0.5\baselineskip}
+    {|Gamma +- (x:xs) : tau|_{list(|tau|_0)}}\\ \vspace{1.5\baselineskip}
 
   \axiom[list-nil]%
     {|Gamma +- [] : tau|_{list(|tau|_0)}}
