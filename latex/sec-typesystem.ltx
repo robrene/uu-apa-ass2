@@ -29,6 +29,16 @@
      |Gamma +- e_3 : tau|}%
     {|Gamma +- if e_1 then e_2 else e_3 : tau|}\\ \vspace{0.5\baselineskip}
 
+  \infrule[let]%
+    {|Gamma +- e_1 : tau|_1 \qquad%
+     |Gamma[x +-> tau|_1|] +- e_2 : tau|_2}%
+    {|Gamma +- let x = e_1 in e_2 : tau|_2}\\ \vspace{0.5\baselineskip}
+
+  \infrule[op]%
+    {|Gamma +- e_1 : tau|^1_{op} \qquad%
+     |Gamma +- e_2 : tau|^2_{op}}%
+    {|Gamma +- e_1 op e_2 : tau|_{op}}\\ \vspace{0.5\baselineskip}
+
   \caption{Typing}
   \label{fig:rf-typing}
 \end{figure}
