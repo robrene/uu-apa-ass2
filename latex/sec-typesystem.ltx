@@ -11,12 +11,12 @@
     {|Gamma +- x : tau|}\\ \vspace{0.5\baselineskip}
 
   \infrule[fn]%
-    {|Gamma[x +-> tau|_x|] +- e|_0| : tau|_0}%
-    {|Gamma +- fn|_{\pi}| x => e|_0| : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
+    {|Gamma[x +-> tau|_x|] +- e_1 : tau|_0}%
+    {|Gamma +- fn|_{\pi}| x => e_1 : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
 
   \infrule[fun]%
-    {|Gamma[f +-> tau|_x| -> tau|_0|][x +-> tau|_x|] +- e|_0| : tau|_0}%
-    {|Gamma +- fun|_{\pi}| f x => e|_0| : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
+    {|Gamma[f +-> tau|_x| -> tau|_0|][x +-> tau|_x|] +- e_1 : tau|_0}%
+    {|Gamma +- fun|_{\pi}| f x => e_1 : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
 
   \infrule[app]%
     {|Gamma +- e_1 : tau|_2| -> tau|_0 \qquad%
@@ -24,10 +24,10 @@
     {|Gamma +- e_1 e_2 : tau|_0}\\ \vspace{0.5\baselineskip}
 
   \infrule[if]%
-    {|Gamma +- e|_0| : bool| \qquad%
-     |Gamma +- e_1 : tau| \qquad%
-     |Gamma +- e_2 : tau|}%
-    {|Gamma +- if e|_0| then e_1 else e_2 : tau|}\\ \vspace{0.5\baselineskip}
+    {|Gamma +- e_1 : bool| \qquad%
+     |Gamma +- e_2 : tau| \qquad%
+     |Gamma +- e_3 : tau|}%
+    {|Gamma +- if e_1 then e_2 else e_3 : tau|}\\ \vspace{0.5\baselineskip}
 
   \caption{Typing}
   \label{fig:rf-typing}
