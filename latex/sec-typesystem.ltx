@@ -39,6 +39,12 @@
      |Gamma +- e_2 : tau|^2_{op}}%
     {|Gamma +- e_1 op e_2 : tau|_{op}}\\ \vspace{0.5\baselineskip}
 
+  \infrule[case]%
+    {|Gamma +- e_1 : tau|_1 \qquad%
+     \forall |i :: Gamma +- e|_i| : tau|_1 \qquad%
+     \forall |j :: Gamma +- e|_j| : tau|_0}%
+    {|Gamma +- case e_1 of [e|_i| -> e|_j|] esac : tau|_0}\\ \vspace{0.5\baselineskip}
+
   \caption{Typing}
   \label{fig:rf-typing}
 \end{figure}
