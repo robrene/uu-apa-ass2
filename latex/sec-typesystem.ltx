@@ -45,6 +45,14 @@
      \forall |j :: Gamma +- e|_j| : tau|_0}%
     {|Gamma +- case e_1 of [e|_i| -> e|_j|] esac : tau|_0}\\ \vspace{0.5\baselineskip}
 
+  \infrule[list-cons]%
+    {|Gamma +- x : tau|_0 \qquad%
+     |Gamma +- xs : tau|_{list(|tau|_0)}}%
+    {|Gamma +- (x:xs) : tau|_{list(|tau|_0)}}\\ \vspace{0.5\baselineskip}
+
+  \axiom[list-nil]%
+    {|Gamma +- [] : tau|_{list(|tau|_0)}}
+
   \caption{Typing}
   \label{fig:rf-typing}
 \end{figure}
