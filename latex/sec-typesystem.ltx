@@ -18,6 +18,17 @@
     {|Gamma[f +-> tau|_x| -> tau|_0|][x +-> tau|_x|] +- e|_0| : tau|_0}%
     {|Gamma +- fun|_{\pi}| f x => e|_0| : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
 
+  \infrule[app]%
+    {|Gamma +- e_1 : tau|_2| -> tau|_0 \qquad%
+     |Gamma +- e_2 : tau|_2}%
+    {|Gamma +- e_1 e_2 : tau|_0}\\ \vspace{0.5\baselineskip}
+
+  \infrule[if]%
+    {|Gamma +- e|_0| : bool| \qquad%
+     |Gamma +- e_1 : tau| \qquad%
+     |Gamma +- e_2 : tau|}%
+    {|Gamma +- if e|_0| then e_1 else e_2 : tau|}\\ \vspace{0.5\baselineskip}
+
   \caption{Typing}
   \label{fig:rf-typing}
 \end{figure}
