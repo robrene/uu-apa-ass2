@@ -53,7 +53,12 @@ Below you will find Figure 1, which describes the annotated type rules for our e
     {|Gamma +- (x:xs) : tau|_{list(|tau|_0)}}\\ \vspace{1.5\baselineskip}
 
   \axiom[list-nil]%
-    {|Gamma +- [] : tau|_{list(|tau|_0)}}
+    {|Gamma +- [] : tau|_{list(|tau|_0)}}\\ \vspace{0.5\baselineskip}
+
+  \infrule[pair]%
+    {|Gamma +- e_1 : tau|_1 \qquad%
+     |Gamma +- e_2 : tau|_2}%
+    {|Gamma +- (e_1, e_2) : tau|_{pair(|tau|_1, |tau|_2)}}
 
   \caption{Typing}
   \label{fig:rf-typing}
