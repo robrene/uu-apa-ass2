@@ -93,6 +93,8 @@
 %format e_1
 %format e_2
 %format e_3
+%format e_i
+%format e_j
 %format l   = "\val{l}"
 
 %format Gamma      = "\ctx{\Gamma}"
@@ -127,9 +129,22 @@
 %format rhoTld_2  = "\rf{\widetilde\varrho_2}"
 %format tau       = "\ty\tau"
 %format tauHat    = "\ty{\widehat\tau}"
+%format tauHat_0  = "\ty{\widehat\tau_0}"
 %format tauHat_1  = "\ty{\widehat\tau_1}"
 %format tauHat_2  = "\ty{\widehat\tau_2}"
 %format tauHat_3  = "\ty{\widehat\tau_3}"
+%format tauHat_c  = "\ty{\widehat\tau_c}"
+%format tauHat_x  = "\ty{\widehat\tau_x}"
+
+%format pi        = "\pi"
+%format _union_   = "\cup"
+%format phi       = "\varphi"
+
+%format fn        = "\set{fn}"
+%format fn_pi     = "\set{fn}_{\pi}"
+%format fun       = "\set{fun}"
+%format fun_pi    = "\set{fun}_{\pi}"
+%format op        = "\cs{op}"
 
 %% ----------------------------------------------------------------------------
 %% METAOPERATIONS
@@ -168,6 +183,6 @@
 %% DATASTRUCTURES
 %% ----------------------------------------------------------------------------
 
-%format analysis     = "\ds{analysis}" 
+%format analysis     = "\ds{analysis}"
 %format dependencies = "\ds{dependencies}"
 %format worklist     = "\ds{worklist}"

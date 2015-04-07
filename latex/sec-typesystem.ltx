@@ -4,61 +4,61 @@
 Below you will find Figure 1, which describes the annotated type rules for our extended lambda calculus language for the second assignment of Automatic Program Analysis at Utrecht University.
 
 \begin{figure}
-  \prototype{Typing}{|Gamma +- e : tau|}
+  \prototype{Typing}{|GammaHat +- e : tauHat|}
 
-  \axiom[con]{|Gamma +- c : tau|_c}\\ \vspace{0.5\baselineskip}
+  \axiom[con]{|GammaHat +- c : tauHat_c|}\\ \vspace{0.5\baselineskip}
 
   \infrule[var]%
-    {|Gamma(x) = tau|}%
-    {|Gamma +- x : tau|}\\ \vspace{0.5\baselineskip}
+    {|GammaHat(x) = tauHat|}%
+    {|GammaHat +- x : tauHat|}\\ \vspace{0.5\baselineskip}
 
   \infrule[fn]%
-    {|Gamma[x +-> tau|_x|] +- e_1 : tau|_0}%
-    {|Gamma +- fn|_{\pi}| x => e_1 : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
+    {|GammaHat[x +-> tauHat_x] +- e_1 : tauHat_0|}%
+    {|GammaHat +- fn_pi x => e_1 : tauHat_x | \xrightarrow{|{pi} _union_ phi|} | tauHat_0|}\\ \vspace{0.5\baselineskip}
 
   \infrule[fun]%
-    {|Gamma[f +-> tau|_x| -> tau|_0|][x +-> tau|_x|] +- e_1 : tau|_0}%
-    {|Gamma +- fun|_{\pi}| f x => e_1 : tau|_x| -> tau |_0}\\ \vspace{0.5\baselineskip}
+    {|GammaHat[f +-> tauHat_x | \xrightarrow{|{pi} _union_ phi|} | tauHat_0][x +-> tauHat_x] +- e_1 : tauHat_0|}%
+    {|GammaHat +- fun_pi f x => e_1 : tauHat_x | \xrightarrow{|{pi} _union_ phi|} | tauHat_0|}\\ \vspace{0.5\baselineskip}
 
   \infrule[app]%
-    {|Gamma +- e_1 : tau|_2| -> tau|_0 \qquad%
-     |Gamma +- e_2 : tau|_2}%
-    {|Gamma +- e_1 e_2 : tau|_0}\\ \vspace{0.5\baselineskip}
+    {|GammaHat +- e_1 : tauHat_2 | \xrightarrow{|phi|} | tauHat_0| \qquad%
+     |GammaHat +- e_2 : tauHat_2|}%
+    {|GammaHat +- e_1 e_2 : tauHat_0|}\\ \vspace{0.5\baselineskip}
 
   \infrule[if]%
-    {|Gamma +- e_1 : bool| \qquad%
-     |Gamma +- e_2 : tau| \qquad%
-     |Gamma +- e_3 : tau|}%
-    {|Gamma +- if e_1 then e_2 else e_3 : tau|}\\ \vspace{0.5\baselineskip}
+    {|GammaHat +- e_1 : Bool| \qquad%
+     |GammaHat +- e_2 : tauHat| \qquad%
+     |GammaHat +- e_3 : tauHat|}%
+    {|GammaHat +- if e_1 then e_2 else e_3 : tauHat|}\\ \vspace{0.5\baselineskip}
 
   \infrule[let]%
-    {|Gamma +- e_1 : tau|_1 \qquad%
-     |Gamma[x +-> tau|_1|] +- e_2 : tau|_2}%
-    {|Gamma +- let x = e_1 in e_2 : tau|_2}\\ \vspace{0.5\baselineskip}
+    {|GammaHat +- e_1 : tauHat_1| \qquad%
+     |GammaHat[x +-> tauHat_1] +- e_2 : tauHat_2|}%
+    {|GammaHat +- let x = e_1 in e_2 : tauHat_2|}\\ \vspace{0.5\baselineskip}
 
   \infrule[op]%
-    {|Gamma +- e_1 : tau|^1_{op} \qquad%
-     |Gamma +- e_2 : tau|^2_{op}}%
-    {|Gamma +- e_1 op e_2 : tau|_{op}}\\ \vspace{0.5\baselineskip}
+    {|GammaHat +- e_1 : |\ty{\widehat\tau^1_{op}} \qquad%
+     |GammaHat +- e_2 : |\ty{\widehat\tau^2_{op}}}%
+    {|GammaHat +- e_1 op e_2 : |\ty{\widehat\tau_{op}}}\\ \vspace{0.5\baselineskip}
 
   \infrule[case]%
-    {|Gamma +- e_1 : tau|_1 \qquad%
-     \forall |i :: Gamma +- e|_i| : tau|_1 \qquad%
-     \forall |j :: Gamma +- e|_j| : tau|_0}%
-    {|Gamma +- case e_1 of [e|_i| -> e|_j|] esac : tau|_0}\\ \vspace{0.5\baselineskip}
+    {|GammaHat +- e_1 : tauHat_1| \qquad%
+     \forall |i :: GammaHat +- e_i : tauHat_1| \qquad%
+     \forall |j :: GammaHat +- e_j : tauHat_0|}%
+    {|GammaHat +- case e_1 of [e_i then e_j]|^+| : tauHat_0|}\\ \vspace{0.5\baselineskip}
 
   \infrule[list-cons]%
-    {|Gamma +- x : tau|_0 \qquad%
-     |Gamma +- xs : tau|_{list(|tau|_0)}}%
-    {|Gamma +- (x:xs) : tau|_{list(|tau|_0)}}\\ \vspace{1.5\baselineskip}
+    {|GammaHat +- x : tauHat_0| \qquad%
+     |GammaHat +- xs : |\ty{\widehat\tau_{list(|tauHat_0|)}}}%
+    {|GammaHat +- (x:xs) : |\ty{\widehat\tau_{list(|tauHat_0|)}}}\\ \vspace{1.5\baselineskip}
 
   \axiom[list-nil]%
-    {|Gamma +- [] : tau|_{list(|tau|_0)}}\\ \vspace{0.5\baselineskip}
+    {|GammaHat +- [] : |\ty{\widehat\tau_{list(|tauHat_0|)}}}\\ \vspace{0.5\baselineskip}
 
   \infrule[pair]%
-    {|Gamma +- e_1 : tau|_1 \qquad%
-     |Gamma +- e_2 : tau|_2}%
-    {|Gamma +- (e_1, e_2) : tau|_{pair(|tau|_1, |tau|_2)}}
+    {|GammaHat +- e_1 : tauHat_1| \qquad%
+     |GammaHat +- e_2 : tauHat_2|}%
+    {|GammaHat +- (e_1, e_2) : |\ty{\widehat\tau_{pair(|tauHat_0|)}}}
 
   \caption{Typing}
   \label{fig:rf-typing}
