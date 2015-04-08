@@ -29,6 +29,7 @@
 
 %format ->>  = "\Downarrow"
 %format +-   = "\vdash"
+%format +-_ = "\vdash_{\text{CFA}}"
 %format +->  = "\mapsto"
 %format ++-  = "\Vdash"
 %format <=:  = "\subseteq"
