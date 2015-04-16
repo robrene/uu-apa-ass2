@@ -29,10 +29,10 @@ data TypeSubst = Id
                | TypeSubst:.:TypeSubst
                deriving (Show)
 
-(|.) :: TypeSubst -> TypeSubst -> TypeSubst
-(|.) Id th2 = th2
-(|.) th1 Id = th1
-(|.) th1 th2 = th1:.:th2
+(|.|) :: TypeSubst -> TypeSubst -> TypeSubst
+(|.|) Id th2 = th2
+(|.|) th1 Id = th1
+(|.|) th1 th2 = th1:.:th2
 
 subst Id t = t
 subst th@(tv :+->: ty) AugTyInt = AugTyInt
@@ -64,26 +64,26 @@ _W' i (env, Fn pi x e0) = let ax = freshTVar i
 _W' i (env, Fun pi f x e0) = let (ax, a0) = freshTVars i
                                  (t0, th0, i') = _W' (i+1) ((x, ax):(f, ax :-->: a0):env, e0)
                                  th1 = _U (t0, subst th0 a0)
-                             in  ((subst th1 (subst th0 ax)) :-->: subst th1 t0, th1|.th0, i')
+                             in  ((subst th1 (subst th0 ax)) :-->: subst th1 t0, th1|.|th0, i')
 
 _W' i (env, App e1 e2) = let (t1, th1, i') = _W' i (env, e1)
                              (t2, th2, i'') = _W' i' (substEnv th1 env, e2)
                              a = freshTVar i''
                              th3 = _U (subst th2 t1, t2 :-->: a)
-                         in  (subst th3 a, th3|.th2|.th1, i''+1)
+                         in  (subst th3 a, th3|.|th2|.|th1, i''+1)
 
 _W' i (env, Op e1 op e2) = let (t1, th1, i') = _W' i (env, e1)
                                (t2, th2, i'') = _W' i' (substEnv th1 env, e2)
                                th3 = _U (subst th2 t1, opType1 op)
                                th4 = _U (subst th3 t2, opType2 op)
-                           in  (opType op, th4|.th3|.th2|.th1, i'')
+                           in  (opType op, th4|.|th3|.|th2|.|th1, i'')
 
 _U :: (AType, AType) -> TypeSubst
 _U (AugTyInt, AugTyInt)   = Id
 _U (AugTyBool, AugTyBool) = Id
 _U (t1 :-->: t2, t1' :-->: t2') = let th1 = _U (t1, t1')
                                       th2 = _U (subst th1 t2, subst th1 t2')
-                                  in  th2|.th1
+                                  in  th2|.|th1
 _U (AugTyVar a, AugTyVar a') | a == a' = Id
 _U (t, AugTyVar a) | a `doesNotOccurIn` t = a :+->: t
 _U (AugTyVar a, t) | a `doesNotOccurIn` t = a :+->: t
