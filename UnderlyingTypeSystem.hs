@@ -51,7 +51,7 @@ _W :: (ATEnv, Exp) -> (AType, TypeSubst)
 _W input = (t, th)
   where (t, th, _) = _W' 0 input
 
-_W' :: Int -> (ATEnv, Exp) -> (AType, TypeSubst, Int) -- Returns an unused integer
+_W' :: Int -> (ATEnv, Exp) -> (AType, TypeSubst, Int)
 
 _W' i (env, Const c) = (constType c, Id, i)
 
@@ -71,6 +71,17 @@ _W' i (env, App e1 e2) = let (t1, th1, i') = _W' i (env, e1)
                              a = freshTVar i''
                              th3 = _U (subst th2 t1, t2 :-->: a)
                          in  (subst th3 a, th3|.|th2|.|th1, i''+1)
+
+_W' i (env, ITE e0 e1 e2) = let (t0, th0, i') = _W' i (env, e0)
+                                (t1, th1, i'') = _W' i' (substEnv th0 env, e1)
+                                (t2, th2, i''') = _W' i'' (substEnv th1 (substEnv th0 env), e2)
+                                th3 = _U (subst th2 (subst th1 t0), AugTyBool)
+                                th4 = _U (subst th3 t2, subst th3 (subst th2 t1))
+                            in  (subst th4 (subst th3 t2), th4|.|th3|.|th2|.|th1, i''')
+
+_W' i (env, Let x e1 e2) = let (t1, th1, i') = _W' i (env, e1)
+                               (t2, th2, i'') = _W' i' ((x, t2):(substEnv th1 env), e2)
+                           in  (t2, th2|.|th1, i'')
 
 _W' i (env, Op e1 op e2) = let (t1, th1, i') = _W' i (env, e1)
                                (t2, th2, i'') = _W' i' (substEnv th1 env, e2)

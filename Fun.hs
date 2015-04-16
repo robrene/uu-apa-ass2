@@ -14,7 +14,7 @@ data Exp =
   | Fun Pnt Var Var Exp
   | App Exp Exp
   | ITE Exp Exp Exp
-  | Let Var Exp
+  | Let Var Exp Exp
   | Op Exp Op Exp
   deriving (Eq, Show)
 
