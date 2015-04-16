@@ -80,15 +80,6 @@ containsTVar ((x, AugTyVar tv):es) a | a == tv   = True
 containsTVar ((_, _):es) a = containsTVar es a
 containsTVar _ a = False
 
---subst :: TypeSubst -> AType -> AType
---subst Id t = t
---subst s@(Subst tv ty) AugTyInt = AugTyInt
---subst s@(Subst tv ty) AugTyBool = AugTyBool
---subst s@(Subst tv ty) (t1 :-->: t2) = (subst s t1) :-->: (subst s t2)
---subst s@(Subst tv ty) (AugTyVar a) | tv == a = ty
---                                   | otherwise   = AugTyVar a
---subst (th1 :.: th2) t = subst th1 $ subst th2 t
-
 doesNotOccurIn :: TVar -> AType -> Bool
 doesNotOccurIn a (AugTyVar tv) | a == tv = False
 doesNotOccurIn a (t1 :-->: t2) = (a `doesNotOccurIn` t1) && (a `doesNotOccurIn` t2)
