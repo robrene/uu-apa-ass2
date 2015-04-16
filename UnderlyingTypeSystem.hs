@@ -128,7 +128,7 @@ doesNotOccurIn a _ = True
 ppAType :: AType -> String
 ppAType AugTyInt = "int"
 ppAType AugTyBool = "bool"
-ppAType (a :-->: b) = (ppAType a) ++ " --> " ++ (ppAType b)
+ppAType (a :-->: b) = "(" ++ (ppAType a) ++ " --> " ++ (ppAType b) ++ ")"
 ppAType (AugTyVar a) = a
 
 ppTypeSubst :: TypeSubst -> String
