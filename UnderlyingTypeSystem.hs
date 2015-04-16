@@ -8,9 +8,6 @@ import Fun
 data Type = TyInt | TyBool | Type :->: Type deriving (Show)
 type TEnv = [(Var, Type)]
 
---dom ((x, _):es) = x : dom es
---dom [] = []
-
 _Gamma ((x', t):es) x = if x == x' then t else _Gamma es x
 _Gamma [] x = error ("Type not found: " ++ show x)
 
