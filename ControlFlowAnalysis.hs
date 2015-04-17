@@ -149,9 +149,9 @@ _WWW (ca,cb) (env, App e1 e2) =
       , (ca2+1,cb2+1) )
 
 _WWW (ca,cb) (env, ITE e0 e1 e2) =
-  let (t0, th0, _C0, (ca0, cb0)) = _WWW (ca,cb) (env, e0)
-      (t1, th1, _C1, (ca1, cb1)) = _WWW (ca0,cb0) (substEnv th0 env, e1)
-      (t2, th2, _C2, (ca2, cb2)) = _WWW (ca1,cb1) (substEnv th1 (substEnv th2 env), e2)
+  let (t0, th0, _C0, (ca0,cb0)) = _WWW (ca,cb) (env, e0)
+      (t1, th1, _C1, (ca1,cb1)) = _WWW (ca0,cb0) (substEnv th0 env, e1)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (substEnv th1 (substEnv th2 env), e2)
       th3 = _U (subst th2 (subst th1 t0), STyBool)
       th4 = _U (subst th3 t2, subst th3 (subst th2 t1))
   in  ( subst th4 (subst th3 t2)
