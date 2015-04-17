@@ -1,6 +1,8 @@
 module ControlFlowAnalysis where
 
 import Fun
+import Data.Char
+import Data.List
 import qualified Data.Set as S
 
 --------------------------------------------------------------------------------
@@ -104,35 +106,78 @@ doesNotOccurIn a _ = True
 
 _W :: (TEnv, Exp) -> (SType, SimpleSubst, ConstraintSet)
 _W (env, e) = (t, th, _C)
-  where (t, th, _C, _) = _Wcc 0 (env, e)
+  where (t, th, _C, _) = _WWW (0, 1) (env, e)
 
 -- cc: Call counter.
--- Each call to _Wcc gets a unique ID, used to generate fresh names.
+-- Each call to _WWW gets a unique counter values, used to generate fresh names.
 
-_Wcc :: Int ->  (TEnv, Exp) -> (SType, SimpleSubst, ConstraintSet, Int)
+_WWW :: (Int, Int) ->  (TEnv, Exp) -> (SType, SimpleSubst, ConstraintSet, (Int, Int))
 
-_Wcc cc (env, Const c) = (constType c, Id, S.empty, cc+1)
+_WWW (ca,cb) (env, Const c) = (constType c, Id, S.empty, (ca,cb))
 
-_Wcc cc (env, Var x) = (_GammaOr env x (STyVar ('$':x)), Id, S.empty, cc+1)
+_WWW (ca,cb) (env, Var x) = (_GammaOr env x (STyVar ('$':x)), Id, S.empty, (ca,cb))
 
-_Wcc cc (env, Fn pi x e0) = let ax = STyVar $ '\'':(mkTVarName cc) ++ "_" ++ x
-                                (t0, th0, _C0, cc0) = _Wcc cc ((x, ax):env, e0)
-                                b0 = '\'':(mkAVarName cc)
-                            in  ( (subst th0 ax) -|b0|> t0
-                                , th0
-                                , S.insert (b0, pi) _C0
-                                , cc0+1 )
+_WWW (ca,cb) (env, Fn pi x e0) =
+  let ax = freshTVar ca
+      (t0, th0, _C0, (ca0,cb0)) = _WWW (ca+1, cb) ((x, ax):env, e0)
+      b0 = freshAVar cb0
+  in  ( (subst th0 ax) -|b0|> t0
+      , th0
+      , S.insert (b0, pi) _C0
+      , (ca0,cb0+1) )
 
-_Wcc cc (env, Fun pi f x e0) = let ax = STyVar $ '\'':(mkTVarName cc) ++ "_" ++ x
-                                   a0 = STyVar $ '\'':(mkTVarName cc) ++ "_0"
-                                   b0 = '\'':(mkAVarName cc)
-                                   (t0, th0, _C0, cc0) = _Wcc cc ((x, ax):(f, ax -|b0|> a0):env, e0)
-                                   th1 = _U (t0, subst th0 a0)
-                               in  ( subst th1 (subst th0 ax) -|substAnn th1 (substAnn th0 b0)|> subst th1 t0
-                                   , th1|.|th0
-                                   , S.insert (substAnn th1 (substAnn th0 b0), pi) (substC th1 _C0)
-                                   , cc0+1)
+_WWW (ca,cb) (env, Fun pi f x e0) =
+  let ax = freshTVar ca
+      a0 = freshTVar (ca+1)
+      b0 = freshAVar cb
+      (t0, th0, _C0, (ca0,cb0)) = _WWW (ca+2,cb+1) ((x, ax):(f, ax -|b0|> a0):env, e0)
+      th1 = _U (t0, subst th0 a0)
+  in  ( subst th1 (subst th0 ax) -|substAnn th1 (substAnn th0 b0)|> subst th1 t0
+      , th1|.|th0
+      , S.insert (substAnn th1 (substAnn th0 b0), pi) (substC th1 _C0)
+      , (ca0,cb0) )
 
+_WWW (ca,cb) (env, App e1 e2) =
+  let (t1, th1, _C1, (ca1,cb1)) = _WWW (ca,cb) (env, e1)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (substEnv th1 env, e2)
+      a = freshTVar ca2
+      b = freshAVar cb2
+      th3 = _U (subst th2 t1, t2 -|b|> a)
+  in  ( subst th3 a
+      , th3|.|th2|.|th1
+      , S.union (substC th3 (substC th2 _C1)) (substC th3 _C2)
+      , (ca2+1,cb2+1) )
+
+_WWW (ca,cb) (env, ITE e0 e1 e2) =
+  let (t0, th0, _C0, (ca0, cb0)) = _WWW (ca,cb) (env, e0)
+      (t1, th1, _C1, (ca1, cb1)) = _WWW (ca0,cb0) (substEnv th0 env, e1)
+      (t2, th2, _C2, (ca2, cb2)) = _WWW (ca1,cb1) (substEnv th1 (substEnv th2 env), e2)
+      th3 = _U (subst th2 (subst th1 t0), STyBool)
+      th4 = _U (subst th3 t2, subst th3 (subst th2 t1))
+  in  ( subst th4 (subst th3 t2)
+      , th4|.|th3|.|th2|.|th1|.|th0
+      , S.unions [ substC th4 (substC th3 (substC th2 (substC th1 _C0)))
+                 , substC th4 (substC th3 (substC th2 _C1))
+                 , substC th4 (substC th3 _C2)]
+      , (ca2,cb2) )
+
+_WWW (ca,cb) (env, Let x e1 e2) =
+  let (t1, th1, _C1, (ca1,cb1)) = _WWW (ca,cb) (env, e1)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) ((x, t1):(substEnv th1 env), e2)
+  in  ( t2
+      , th2|.|th1
+      , S.union (substC th2 _C1) _C2
+      , (ca2,cb2) )
+
+_WWW (ca,cb) (env, Op e1 op e2) =
+  let (t1, th1, _C1, (ca1,cb1)) = _WWW (ca,cb) (env, e1)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (substEnv th1 env, e2)
+      th3 = _U (subst th2 t1, opType1 op)
+      th4 = _U (subst th3 t2, opType2 op)
+  in  ( opType op
+      , th4|.|th3|.|th2|.|th1
+      , S.union (substC th4 (substC th3 (substC th2 _C1))) (substC th4 (substC th3 _C2))
+      , (ca2,cb2) )
 
 -- Helper functions:
 constType :: Const -> SType
@@ -146,8 +191,29 @@ opType x | x `elem` [Eq, Fun.LT, LTE, Fun.GT, GTE, Plus, Minus, Times, Div, Mod]
 opType1 = opType
 opType2 = opType
 
-mkTVarName :: Int -> String  -- TODO make fancy
-mkTVarName cc = "a" ++ (show cc)
+freshTVar :: Int -> SType  -- TODO make fancy
+freshTVar cc | cc < 26   = STyVar $ '\'':[chr $ cc + ord 'a']
+             | otherwise = STyVar $ '\'':("a" ++ show (cc-26))
 
-mkAVarName :: Int -> String
-mkAVarName cc = show cc
+freshAVar :: Int -> AVar
+freshAVar cc = '\'':(show cc)
+
+-- Pretty print
+ppSType :: SType -> String
+ppSType STyInt = "int"
+ppSType STyBool = "bool"
+ppSType (STyFunc b t1 t2) = "(" ++ (ppSType t1) ++ " --|" ++ b ++ "|->" ++ (ppSType t2) ++ ")"
+ppSType (STyVar a) = a
+
+ppSimpleSubst :: SimpleSubst -> String
+ppSimpleSubst Id = "id"
+ppSimpleSubst (tv :+->: ty) = "[" ++ tv ++ " +-> " ++ (ppSType ty) ++ "]"
+ppSimpleSubst (b1 :+>>: b2) = "[" ++ b1 ++ " +>> " ++ b2 ++ "]"
+ppSimpleSubst (a :.: b) = (ppSimpleSubst a) ++ " ∘\n" ++ (ppSimpleSubst b)
+
+ppConstraints :: ConstraintSet -> String
+ppConstraints _C = intercalate ", " $ S.toList $ S.map mkString _C
+  where mkString (b, pi) = b ++ " ⊇ {" ++ pi ++ "}"
+
+ppW :: (SType, SimpleSubst, ConstraintSet) -> String
+ppW (ty, th, _C) = (ppSType ty) ++ "\n" ++ (ppSimpleSubst th) ++ "\n" ++ (ppConstraints _C)
