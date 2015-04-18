@@ -115,7 +115,7 @@ _WWW :: (Int, Int) ->  (TEnv, Exp) -> (SType, SimpleSubst, ConstraintSet, (Int, 
 
 _WWW (ca,cb) (env, Const c) = (constType c, Id, S.empty, (ca,cb))
 
-_WWW (ca,cb) (env, Var x) = (_GammaOr env x (STyVar ('$':x)), Id, S.empty, (ca,cb))
+_WWW (ca,cb) (env, Var x) = (_GammaOr env x (STyVar ("''"++x)), Id, S.empty, (ca,cb))
 
 _WWW (ca,cb) (env, Fn pi x e0) =
   let ax = freshTVar ca
@@ -202,18 +202,15 @@ freshAVar cc = '\'':(show cc)
 ppSType :: SType -> String
 ppSType STyInt = "int"
 ppSType STyBool = "bool"
-ppSType (STyFunc b t1 t2) = "(" ++ (ppSType t1) ++ " --|" ++ b ++ "|->" ++ (ppSType t2) ++ ")"
+ppSType (STyFunc b t1 t2) = "(" ++ (ppSType t1) ++ " --|" ++ b ++ "|-> " ++ (ppSType t2) ++ ")"
 ppSType (STyVar a) = a
 
 ppSimpleSubst :: SimpleSubst -> String
 ppSimpleSubst Id = "id"
 ppSimpleSubst (tv :+->: ty) = "[" ++ tv ++ " +-> " ++ (ppSType ty) ++ "]"
 ppSimpleSubst (b1 :+>>: b2) = "[" ++ b1 ++ " +>> " ++ b2 ++ "]"
-ppSimpleSubst (a :.: b) = (ppSimpleSubst a) ++ " ∘\n" ++ (ppSimpleSubst b)
+ppSimpleSubst (a :.: b) = (ppSimpleSubst a) ++ "\n∘ " ++ (ppSimpleSubst b)
 
 ppConstraints :: ConstraintSet -> String
 ppConstraints _C = intercalate ", " $ S.toList $ S.map mkString _C
   where mkString (b, pi) = b ++ " ⊇ {" ++ pi ++ "}"
-
-ppW :: (SType, SimpleSubst, ConstraintSet) -> String
-ppW (ty, th, _C) = (ppSType ty) ++ "\n" ++ (ppSimpleSubst th) ++ "\n" ++ (ppConstraints _C)
