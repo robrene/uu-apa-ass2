@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 module ControlFlowAnalysis where
 
 import Fun
@@ -8,7 +11,15 @@ import qualified Data.Set as S
 --------------------------------------------------------------------------------
 -- Annotated types:
 
-data SType = STyInt | STyBool | STyFunc AVar SType SType | STyVar TVar deriving (Show)
+data SType =
+    STyInt
+  | STyBool
+  | STyPair AVar SType SType
+  | STyList AVar SType
+  | STyDataType AVar Tag
+  | STyFunc AVar SType SType
+  | STyVar TVar
+  deriving (Show)
 type TVar = String
 type AVar = String
 data SAnn = SAPnt Pnt | SAnn :++: SAnn | SAEmpty | SAVar AVar deriving (Show)
@@ -48,38 +59,30 @@ data SimpleSubst = Id
 infixl 8 |.|
 infixl 7 :+->:
 
--- TODO make class Substitutable?
+class Substitutable a where
+  sub :: SimpleSubst -> a -> a
 
-subst :: SimpleSubst -> SType -> SType
-subst Id t = t
-subst th@(tv :+->: ty) STyInt = STyInt
-subst th@(tv :+->: ty) STyBool = STyBool
-subst th@(tv :+->: ty) (STyFunc b t1 t2) = STyFunc b (subst th t1) (subst th t2)
-subst th@(tv :+->: ty) (STyVar a) | tv == a   = ty
-                                  | otherwise = STyVar a
-subst th@(b1 :+>>: b2) STyInt = STyInt
-subst th@(b1 :+>>: b2) STyBool = STyBool
-subst th@(b1 :+>>: b2) (STyFunc b t1 t2) | b == b1   = STyFunc b2 (subst th t1) (subst th t2)
-                                         | otherwise = STyFunc b (subst th t1) (subst th t2)
-subst th@(b1 :+>>: b2) (STyVar a) = STyVar a
-subst (th1:.:th2) t = subst th1 $ subst th2 t
+instance Substitutable SType where
+  sub (tv :+->: ty) (STyVar a) | tv == a = ty
+  sub th (STyPair b t1 t2) = STyPair (sub th b) (sub th t1) (sub th t2)
+  sub th (STyList b t1) = STyList (sub th b) (sub th t1)
+  sub th (STyDataType b z) = STyDataType (sub th b) z
+  sub th (STyFunc b t1 t2) = STyFunc (sub th b) (sub th t1) (sub th t2)
+  sub (th1:.:th2) t = sub th1 $ sub th2 t
+  sub _ t = t
 
-substEnv :: SimpleSubst -> TEnv -> TEnv
-substEnv th env = map modifyEnv env
-  where modifyEnv (x, t) = (x, subst th t)
+instance Substitutable AVar where
+  sub (b1 :+>>: b2) b | b == b1 = b2
+  sub (th1:.:th2) b = sub th1 $ sub th2 b
+  sub _ b = b
 
-substC :: SimpleSubst -> ConstraintSet -> ConstraintSet
-substC (th1:.:th2) _C = substC th1 $ substC th2 _C
-substC (b1 :+>>: b2) _C = S.map modifyC _C
-  where modifyC (b, pi) | b == b1   = (b2, pi)
-                        | otherwise = (b, pi)
-substC _ _C = _C
+instance Substitutable TEnv where
+  sub th env = map modifyEnv env
+    where modifyEnv (x, t) = (x, sub th t)
 
-substAnn :: SimpleSubst -> AVar -> AVar
-substAnn (th1:.:th2) b = substAnn th1 $ substAnn th2 b
-substAnn (b1 :+>>: b2) b | b == b1   = b2
-                         | otherwise = b
-substAnn _ b = b
+instance Substitutable ConstraintSet where
+  sub th _C = S.map modifyC _C
+    where modifyC (b, pi) = (sub th b, pi)
 
 --------------------------------------------------------------------------------
 -- Type unification
@@ -87,14 +90,22 @@ substAnn _ b = b
 _U :: (SType, SType) -> SimpleSubst
 _U (STyInt, STyInt) = Id
 _U (STyBool, STyBool) = Id
+_U (STyPair b t1 t2, STyPair b' t1' t2') = let th0 = b' :+>>: b
+                                               th1 = _U (sub th0 t1, sub th0 t1')
+                                               th2 = _U (sub th1 (sub th0 t2), sub th1 (sub th0 t2'))
+                                           in  th2|.|th1|.|th0
+_U (STyList b t, STyList b' t') = let th0 = b' :+>>: b
+                                      th1 = _U (sub th0 t, sub th0 t')
+                                  in  th1|.|th0
+_U (STyDataType b z, STyDataType b' z') | z == z' = b' :+>>: b
 _U (STyFunc b t1 t2, STyFunc b' t1' t2') = let th0 = b' :+>>: b
-                                               th1 = _U (subst th0 t1, subst th0 t1')
-                                               th2 = _U (subst th1 (subst th0 t2), subst th1 (subst th0 t2'))
+                                               th1 = _U (sub th0 t1, sub th0 t1')
+                                               th2 = _U (sub th1 (sub th0 t2), sub th1 (sub th0 t2'))
                                            in  th2|.|th1|.|th0
 _U (STyVar a, STyVar a') | a == a' = Id
 _U (t, STyVar a) | a `doesNotOccurIn` t = a :+->: t
 _U (STyVar a, t) | a `doesNotOccurIn` t = a :+->: t
-_U (t1, t2) = error ("Could not unify types " ++ show t1 ++ " and " ++ show t2)
+_U (t1, t2) = error ("Could not unify types " ++ ppSType t1 ++ " and " ++ ppSType t2)
 
 doesNotOccurIn :: TVar -> SType -> Bool
 doesNotOccurIn a (STyVar tv) | a == tv = False
@@ -121,7 +132,7 @@ _WWW (ca,cb) (env, Fn pi x e0) =
   let ax = freshTVar ca
       (t0, th0, _C0, (ca0,cb0)) = _WWW (ca+1, cb) ((x, ax):env, e0)
       b0 = freshAVar cb0
-  in  ( (subst th0 ax) -|b0|> t0
+  in  ( (sub th0 ax) -|b0|> t0
       , th0
       , S.insert (b0, pi) _C0
       , (ca0,cb0+1) )
@@ -131,53 +142,80 @@ _WWW (ca,cb) (env, Fun pi f x e0) =
       a0 = freshTVar (ca+1)
       b0 = freshAVar cb
       (t0, th0, _C0, (ca0,cb0)) = _WWW (ca+2,cb+1) ((x, ax):(f, ax -|b0|> a0):env, e0)
-      th1 = _U (t0, subst th0 a0)
-  in  ( subst th1 (subst th0 ax) -|substAnn th1 (substAnn th0 b0)|> subst th1 t0
+      th1 = _U (t0, sub th0 a0)
+  in  ( sub th1 (sub th0 ax) -|sub th1 (sub th0 b0)|> sub th1 t0
       , th1|.|th0
-      , S.insert (substAnn th1 (substAnn th0 b0), pi) (substC th1 _C0)
+      , S.insert (sub th1 (sub th0 b0), pi) (sub th1 _C0)
       , (ca0,cb0) )
 
 _WWW (ca,cb) (env, App e1 e2) =
   let (t1, th1, _C1, (ca1,cb1)) = _WWW (ca,cb) (env, e1)
-      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (substEnv th1 env, e2)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (sub th1 env, e2)
       a = freshTVar ca2
       b = freshAVar cb2
-      th3 = _U (subst th2 t1, t2 -|b|> a)
-  in  ( subst th3 a
+      th3 = _U (sub th2 t1, t2 -|b|> a)
+  in  ( sub th3 a
       , th3|.|th2|.|th1
-      , S.union (substC th3 (substC th2 _C1)) (substC th3 _C2)
+      , S.union (sub th3 (sub th2 _C1)) (sub th3 _C2)
       , (ca2+1,cb2+1) )
 
 _WWW (ca,cb) (env, ITE e0 e1 e2) =
   let (t0, th0, _C0, (ca0,cb0)) = _WWW (ca,cb) (env, e0)
-      (t1, th1, _C1, (ca1,cb1)) = _WWW (ca0,cb0) (substEnv th0 env, e1)
-      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (substEnv th1 (substEnv th2 env), e2)
-      th3 = _U (subst th2 (subst th1 t0), STyBool)
-      th4 = _U (subst th3 t2, subst th3 (subst th2 t1))
-  in  ( subst th4 (subst th3 t2)
+      (t1, th1, _C1, (ca1,cb1)) = _WWW (ca0,cb0) (sub th0 env, e1)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (sub th1 (sub th2 env), e2)
+      th3 = _U (sub th2 (sub th1 t0), STyBool)
+      th4 = _U (sub th3 t2, sub th3 (sub th2 t1))
+  in  ( sub th4 (sub th3 t2)
       , th4|.|th3|.|th2|.|th1|.|th0
-      , S.unions [ substC th4 (substC th3 (substC th2 (substC th1 _C0)))
-                 , substC th4 (substC th3 (substC th2 _C1))
-                 , substC th4 (substC th3 _C2)]
+      , S.unions [ sub th4 (sub th3 (sub th2 (sub th1 _C0)))
+                 , sub th4 (sub th3 (sub th2 _C1))
+                 , sub th4 (sub th3 _C2)]
       , (ca2,cb2) )
 
 _WWW (ca,cb) (env, Let x e1 e2) =
   let (t1, th1, _C1, (ca1,cb1)) = _WWW (ca,cb) (env, e1)
-      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) ((x, t1):(substEnv th1 env), e2)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) ((x, t1):(sub th1 env), e2)
   in  ( t2
       , th2|.|th1
-      , S.union (substC th2 _C1) _C2
+      , S.union (sub th2 _C1) _C2
       , (ca2,cb2) )
 
 _WWW (ca,cb) (env, Op e1 op e2) =
   let (t1, th1, _C1, (ca1,cb1)) = _WWW (ca,cb) (env, e1)
-      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (substEnv th1 env, e2)
-      th3 = _U (subst th2 t1, opType1 op)
-      th4 = _U (subst th3 t2, opType2 op)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (sub th1 env, e2)
+      th3 = _U (sub th2 t1, opType1 op)
+      th4 = _U (sub th3 t2, opType2 op)
   in  ( opType op
       , th4|.|th3|.|th2|.|th1
-      , S.union (substC th4 (substC th3 (substC th2 _C1))) (substC th4 (substC th3 _C2))
+      , S.union (sub th4 (sub th3 (sub th2 _C1))) (sub th4 (sub th3 _C2))
       , (ca2,cb2) )
+
+_WWW (ca,cb) (env, Pair pi e1 e2) =
+  let (t1, th1, _C1, (ca1,cb1)) = _WWW (ca,cb) (env, e1)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (sub th1 env, e2)
+      b = freshAVar cb2
+  in  ( STyPair b (sub th2 (sub th1 t1)) (sub th2 t2)
+      , th2|.|th1
+      , S.insert (sub th2 (sub th1 b), pi) $ S.union (sub th2 _C1) _C2
+      , (ca2,cb2+1) )
+
+_WWW (ca,cb) (env, ListCons pi e1 e2) =
+  let (t1, th1, _C1, (ca1,cb1)) = _WWW (ca,cb) (env, e1)
+      (t2, th2, _C2, (ca2,cb2)) = _WWW (ca1,cb1) (sub th1 env, e2)
+      b = freshAVar cb2
+      th3 = _U (sub th2 (STyList b t1), t2)
+  in  ( sub th3 t2
+      , th3|.|th2|.|th1
+      , S.insert (sub th3 (sub th2 (sub th1 b)), pi) $ S.union (sub th3 (sub th2 _C1)) (sub th3 _C2)
+      , (ca2,cb2+1) )
+
+_WWW (ca,cb) (env, ListNil pi) =
+  let a = freshTVar ca
+      b = freshAVar cb
+  in  ( STyList b a
+      , Id
+      , S.singleton (b, pi)
+      , (ca+1,cb+1) )
 
 -- Helper functions:
 constType :: Const -> SType
@@ -202,6 +240,9 @@ freshAVar cc = '\'':(show cc)
 ppSType :: SType -> String
 ppSType STyInt = "int"
 ppSType STyBool = "bool"
+ppSType (STyPair b t1 t2) = "(" ++ (ppSType t1) ++ " ⊗_{" ++ b ++ "} " ++ (ppSType t2) ++ ")"
+ppSType (STyList b t1) = "ℒ_{" ++ b ++ "}(" ++ ppSType t1 ++ ")"
+ppSType (STyDataType b z) = "\"" ++ z ++ "\"_{" ++ b ++ "}"
 ppSType (STyFunc b t1 t2) = "(" ++ (ppSType t1) ++ " --|" ++ b ++ "|-> " ++ (ppSType t2) ++ ")"
 ppSType (STyVar a) = a
 
